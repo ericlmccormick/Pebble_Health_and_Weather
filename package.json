@@ -1,0 +1,183 @@
+{
+    "author": "Eric McCormick",
+    "dependencies": {
+        "pebble-clay": "^1.0.4"
+    },
+    "keywords": [],
+    "name": "health-and-weather",
+    "pebble": {
+        "capabilities": [
+            "location",
+            "configurable",
+            "health"
+        ],
+        "displayName": "Health and Weather",
+        "enableMultiJS": true,
+        "messageKeys": {
+            "ACTIVE_GOAL": 8,
+            "API_KEY": 4,
+            "CONDITIONS": 1,
+            "IS_NIGHT": 9,
+            "STEP_GOAL": 7,
+            "TEMP_CURRENT": 0,
+            "TEMP_HIGH": 2,
+            "TEMP_LOW": 3,
+            "TIME_FORMAT": 6,
+            "UNITS": 5,
+            "UPDATE_FREQ": 10,
+            "UV_INDEX": 11
+        },
+        "projectType": "native",
+        "resources": {
+            "media": [
+                {
+                    "file": "images/heart-64.png",
+                    "name": "ICON_HEART",
+                    "targetPlatforms": null,
+                    "type": "bitmap"
+                },
+                {
+                    "file": "images/ICON_HEAVY_SNOW",
+                    "name": "ICON_HEAVY_SNOW",
+                    "targetPlatforms": null,
+                    "type": "bitmap"
+                },
+                {
+                    "file": "images/ICON_CLOUDY",
+                    "name": "ICON_CLOUDY",
+                    "targetPlatforms": null,
+                    "type": "bitmap"
+                },
+                {
+                    "file": "images/ICON_THUNDER_SHOWER",
+                    "name": "ICON_THUNDER_SHOWER",
+                    "targetPlatforms": null,
+                    "type": "bitmap"
+                },
+                {
+                    "file": "images/ICON_CLEAR_DAY",
+                    "name": "ICON_CLEAR_DAY",
+                    "targetPlatforms": null,
+                    "type": "bitmap"
+                },
+                {
+                    "file": "images/ICON_HEAVY_RAIN",
+                    "name": "ICON_HEAVY_RAIN",
+                    "targetPlatforms": null,
+                    "type": "bitmap"
+                },
+                {
+                    "file": "images/ICON_CLOUDY_SUN",
+                    "name": "ICON_CLOUDY_SUN",
+                    "targetPlatforms": null,
+                    "type": "bitmap"
+                },
+                {
+                    "file": "images/ICON_CLOUDY_NIGHT",
+                    "name": "ICON_CLOUDY_NIGHT",
+                    "targetPlatforms": null,
+                    "type": "bitmap"
+                },
+                {
+                    "file": "images/ICON_DUST",
+                    "name": "ICON_DUST",
+                    "targetPlatforms": null,
+                    "type": "bitmap"
+                },
+                {
+                    "file": "images/ICON_FOG",
+                    "name": "ICON_FOG",
+                    "targetPlatforms": null,
+                    "type": "bitmap"
+                },
+                {
+                    "file": "images/ICON_HAZE",
+                    "name": "ICON_HAZE",
+                    "targetPlatforms": null,
+                    "type": "bitmap"
+                },
+                {
+                    "file": "images/ICON_RAIN",
+                    "name": "ICON_RAIN",
+                    "targetPlatforms": null,
+                    "type": "bitmap"
+                },
+                {
+                    "file": "images/ICON_LIGHT_RAIN",
+                    "name": "ICON_LIGHT_RAIN",
+                    "targetPlatforms": null,
+                    "type": "bitmap"
+                },
+                {
+                    "file": "images/ICON_RAIN_STORM",
+                    "name": "ICON_RAIN_STORM",
+                    "targetPlatforms": null,
+                    "type": "bitmap"
+                },
+                {
+                    "file": "images/ICON_SANDSTORM",
+                    "name": "ICON_SANDSTORM",
+                    "targetPlatforms": null,
+                    "type": "bitmap"
+                },
+                {
+                    "file": "images/ICON_SHOWER_DAY",
+                    "name": "ICON_SHOWER_DAY",
+                    "targetPlatforms": null,
+                    "type": "bitmap"
+                },
+                {
+                    "file": "images/ICON_SHOWER_NIGHT",
+                    "name": "ICON_SHOWER_NIGHT",
+                    "targetPlatforms": null,
+                    "type": "bitmap"
+                },
+                {
+                    "file": "images/ICON_SLEET",
+                    "name": "ICON_SLEET",
+                    "targetPlatforms": null,
+                    "type": "bitmap"
+                },
+                {
+                    "file": "images/ICON_SNOW",
+                    "name": "ICON_SNOW",
+                    "targetPlatforms": null,
+                    "type": "bitmap"
+                },
+                {
+                    "file": "images/ICON_LIGHT_SNOW",
+                    "name": "ICON_LIGHT_SNOW",
+                    "targetPlatforms": null,
+                    "type": "bitmap"
+                },
+                {
+                    "file": "images/ICON_SNOW_SHOWER_DAY",
+                    "name": "ICON_SNOW_SHOWER_DAY",
+                    "targetPlatforms": null,
+                    "type": "bitmap"
+                },
+                {
+                    "file": "images/ICON_SNOW_SHOWER_NIGHT",
+                    "name": "ICON_SNOW_SHOWER_NIGHT",
+                    "targetPlatforms": null,
+                    "type": "bitmap"
+                },
+                {
+                    "file": "images/ICON_CLEAR_NIGHT",
+                    "name": "ICON_CLEAR_NIGHT",
+                    "targetPlatforms": null,
+                    "type": "bitmap"
+                }
+            ]
+        },
+        "sdkVersion": "3",
+        "targetPlatforms": [
+            "emery"
+        ],
+        "uuid": "7f3f1294-e524-4050-bc8b-60248df17363",
+        "watchapp": {
+            "watchface": true
+        }
+    },
+    "version": "1.5.2"
+}
