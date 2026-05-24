@@ -23,7 +23,7 @@
 
 // --- UI Elements ---
 static Window *s_main_window;
-static TextLayer *s_time_layer, *s_date_layer, *s_hr_layer, *s_dist_layer;
+static TextLayer *s_time_layer, *s_date_layer, *s_hr_layer, *s_dist_layer, *s_weather_desc_layer;
 static Layer *s_weather_arc_layer, *s_goals_canvas;
 static BitmapLayer *s_weather_icon_layer, *s_heart_layer;
 static GBitmap *s_weather_bitmap = NULL, *s_heart_bitmap = NULL;
@@ -33,10 +33,15 @@ static Layer *s_battery_layer;
 static int s_cur = 0, s_hi = 0, s_lo = 0, s_uv = 0;
 static int s_step_goal = 10000, s_active_goal = 30, s_update_freq = 30, s_battery_level = 100;
 static bool s_is_24h = false, s_connected = true, s_use_metric = false, s_is_night = false;
-static char s_time_buf[10], s_cur_buf[8], s_hi_buf[8], s_lo_buf[8], s_hr_buf[8], s_dist_buf[10];
+static char s_time_buf[10], s_cur_buf[8], s_hi_buf[8], s_lo_buf[8], s_hr_buf[8], s_dist_buf[16];
 static char s_icon_code[4] = "01d";
-// RESTORED: Timestamp variable to fix the build error
+static char s_weather_desc_buf[20] = "";
 static time_t s_weather_timestamp = 0;
+
+// --- Heart Graph Variables ---
+#define HR_HISTORY_SIZE 20
+static int s_hr_history[HR_HISTORY_SIZE];
+static Layer *s_hr_graph_layer;
 
 // --- Memory-Safe Tuple Reader ---
 static int get_int(Tuple *t) {
@@ -117,8 +122,6 @@ static void weather_arc_update_proc(Layer *layer, GContext *ctx) {
     
     int angle = 260 + (int)(percent * 200.0f);
     GPoint center = grect_center_point(&arc_bounds);
-    
-    // RESTORED: 8-pixel offset
     int16_t radius = (arc_bounds.size.w / 2) - 8; 
     
     GPoint dot = {
@@ -126,12 +129,13 @@ static void weather_arc_update_proc(Layer *layer, GContext *ctx) {
       (int16_t)(center.y - (cos_lookup(DEG_TO_TRIGANGLE(angle)) * radius / TRIG_MAX_RATIO))
     };
     
-    // UV Color Mapping
     GColor uv_color = GColorBlack; 
     if (!s_is_night && s_uv > 0) {
       if (s_uv <= 2) uv_color = GColorKellyGreen;
       else if (s_uv <= 5) uv_color = GColorYellow;
-      else uv_color = GColorRed;
+      else if (s_uv <= 7) uv_color = GColorOrange;
+      else if (s_uv <= 10) uv_color = GColorRed;
+      else uv_color = GColorPurple;
     }
     
     graphics_context_set_fill_color(ctx, uv_color);
@@ -155,6 +159,35 @@ static void goals_update_proc(Layer *layer, GContext *ctx) {
   graphics_draw_arc(ctx, grect_inset(draw_bounds, GEdgeInsets(7)), GOvalScaleModeFitCircle, 0, (s_step_goal > 0) ? (steps * TRIG_MAX_ANGLE) / s_step_goal : 0);
 }
 
+// --- Heart Rate Sparkline Drawing ---
+static void hr_graph_update_proc(Layer *layer, GContext *ctx) {
+  #if defined(PBL_HEALTH)
+  GRect bounds = layer_get_bounds(layer);
+  graphics_context_set_stroke_width(ctx, 2);
+  
+  int step_x = bounds.size.w / HR_HISTORY_SIZE;
+  
+  for(int i = 0; i < HR_HISTORY_SIZE - 1; i++) {
+    int y1 = bounds.size.h - ((s_hr_history[i] - 55) / 2);
+    int y2 = bounds.size.h - ((s_hr_history[i+1] - 55) / 2);
+    
+    if(y1 < 2) { y1 = 2; } 
+    if(y1 > bounds.size.h) { y1 = bounds.size.h; }
+    if(y2 < 2) { y2 = 2; } 
+    if(y2 > bounds.size.h) { y2 = bounds.size.h; }
+    
+    int avg_hr = (s_hr_history[i] + s_hr_history[i+1]) / 2;
+    GColor line_color = GColorKellyGreen; 
+    if (avg_hr < 70) line_color = GColorPictonBlue; 
+    else if (avg_hr > 120) line_color = GColorRed; 
+    else if (avg_hr > 95) line_color = GColorChromeYellow; 
+
+    graphics_context_set_stroke_color(ctx, line_color);
+    graphics_draw_line(ctx, GPoint(i * step_x, y1), GPoint((i+1) * step_x, y2));
+  }
+  #endif
+}
+
 static void update_theme_colors() {
   window_set_background_color(s_main_window, GColorWhite);
   text_layer_set_text_color(s_time_layer, GColorBlack);
@@ -174,20 +207,35 @@ static void update_theme_colors() {
 static void set_weather_icon(char *icon_code) {
   if (s_weather_bitmap) { gbitmap_destroy(s_weather_bitmap); s_weather_bitmap = NULL; }
   strncpy(s_icon_code, icon_code, sizeof(s_icon_code)); 
+  
   uint32_t res_id = RESOURCE_ID_ICON_CLOUDY;
-  if (!s_connected) res_id = RESOURCE_ID_ICON_HAZE;
-  else {
-    if (strcmp(icon_code, "01d") == 0) res_id = RESOURCE_ID_ICON_CLEAR_DAY;
-    else if (strcmp(icon_code, "01n") == 0) res_id = RESOURCE_ID_ICON_CLEAR_NIGHT;
-    else if (strcmp(icon_code, "02d") == 0) res_id = RESOURCE_ID_ICON_CLOUDY_SUN;
-    else if (strcmp(icon_code, "02n") == 0) res_id = RESOURCE_ID_ICON_CLOUDY_NIGHT;
-    else if (strstr(icon_code, "03") || strstr(icon_code, "04")) res_id = RESOURCE_ID_ICON_CLOUDY;
-    else if (strstr(icon_code, "09") || strstr(icon_code, "10")) res_id = RESOURCE_ID_ICON_RAIN;
-    else if (strstr(icon_code, "13")) res_id = RESOURCE_ID_ICON_SNOW;
-    else if (strstr(icon_code, "11")) res_id = RESOURCE_ID_ICON_THUNDER_SHOWER;
+  char *desc = "Loading";
+
+  if (!s_connected) {
+    res_id = RESOURCE_ID_ICON_HAZE;
+    desc = "Offline";
+  } else {
+    if (strcmp(icon_code, "01d") == 0) { res_id = RESOURCE_ID_ICON_CLEAR_DAY; desc = "Clear"; }
+    else if (strcmp(icon_code, "01n") == 0) { res_id = RESOURCE_ID_ICON_CLEAR_NIGHT; desc = "Clear"; }
+    else if (strcmp(icon_code, "02d") == 0) { res_id = RESOURCE_ID_ICON_CLOUDY_SUN; desc = "P. Cloudy"; }
+    else if (strcmp(icon_code, "02n") == 0) { res_id = RESOURCE_ID_ICON_CLOUDY_NIGHT; desc = "P. Cloudy"; }
+    else if (strcmp(icon_code, "03d") == 0 || strcmp(icon_code, "03n") == 0) { res_id = RESOURCE_ID_ICON_CLOUDY; desc = "Cloudy"; }
+    else if (strcmp(icon_code, "04d") == 0 || strcmp(icon_code, "04n") == 0) { res_id = RESOURCE_ID_ICON_CLOUDY; desc = "Overcast"; }
+    else if (strcmp(icon_code, "09d") == 0 || strcmp(icon_code, "09n") == 0) { res_id = RESOURCE_ID_ICON_RAIN; desc = "Showers"; }
+    else if (strcmp(icon_code, "10d") == 0 || strcmp(icon_code, "10n") == 0) { res_id = RESOURCE_ID_ICON_RAIN; desc = "Rain"; }
+    else if (strcmp(icon_code, "11d") == 0 || strcmp(icon_code, "11n") == 0) { res_id = RESOURCE_ID_ICON_THUNDER_SHOWER; desc = "Storm"; }
+    else if (strcmp(icon_code, "13d") == 0 || strcmp(icon_code, "13n") == 0) { res_id = RESOURCE_ID_ICON_SNOW; desc = "Snow"; }
+    else if (strcmp(icon_code, "50d") == 0 || strcmp(icon_code, "50n") == 0) { res_id = RESOURCE_ID_ICON_HAZE; desc = "Mist"; }
+    else { desc = "Weather"; } 
   }
+
   s_weather_bitmap = gbitmap_create_with_resource(res_id);
   bitmap_layer_set_bitmap(s_weather_icon_layer, s_weather_bitmap);
+  
+  strncpy(s_weather_desc_buf, desc, sizeof(s_weather_desc_buf));
+  if (s_weather_desc_layer) {
+    text_layer_set_text(s_weather_desc_layer, s_weather_desc_buf);
+  }
 }
 
 static void update_time(struct tm *tick_time, TimeUnits units_changed) {
@@ -199,20 +247,21 @@ static void update_time(struct tm *tick_time, TimeUnits units_changed) {
   text_layer_set_text(s_date_layer, d_buf);
   
   if (tick_time->tm_min % 30 == 0) request_weather();
+
+  #if defined(PBL_HEALTH)
+  for(int i = 0; i < HR_HISTORY_SIZE - 1; i++) {
+    s_hr_history[i] = s_hr_history[i+1];
+  }
+  s_hr_history[HR_HISTORY_SIZE - 1] = (int)health_service_peek_current_value(HealthMetricHeartRateBPM);
+  layer_mark_dirty(s_hr_graph_layer);
+  #endif
 }
 
 static void update_health() {
   #if defined(PBL_HEALTH)
   int bpm = (int)health_service_peek_current_value(HealthMetricHeartRateBPM);
   
-  if (bpm > 99) {
-    text_layer_set_font(s_hr_layer, fonts_get_system_font(FONT_KEY_GOTHIC_24_BOLD));
-    layer_set_frame(text_layer_get_layer(s_hr_layer), GRect(120, 158, 64, 30));
-  } else {
-    text_layer_set_font(s_hr_layer, fonts_get_system_font(FONT_KEY_GOTHIC_28_BOLD));
-    layer_set_frame(text_layer_get_layer(s_hr_layer), GRect(120, 157, 64, 35));
-  }
-  
+  // REMOVED dynamic scaling. Position locked exactly up and right.
   snprintf(s_hr_buf, sizeof(s_hr_buf), "%d", bpm);
   text_layer_set_text(s_hr_layer, s_hr_buf);
   
@@ -237,20 +286,18 @@ static void battery_update_proc(Layer *layer, GContext *ctx) {
   graphics_fill_rect(ctx, GRect(0, 0, (s_battery_level * b.size.w) / 100, b.size.h), 0, GCornerNone);
 }
 
-static void bluetooth_callback(bool connected) {
-  s_connected = connected;
-  if (!connected) vibes_double_pulse();
-  layer_mark_dirty(s_weather_arc_layer);
-  set_weather_icon("offline");
-}
-
 static void main_window_load(Window *window) {
   Layer *w_layer = window_get_root_layer(window);
-  window_set_background_color(window, GColorWhite);
-
+  
   s_weather_icon_layer = bitmap_layer_create(GRect(15, 0, 64, 64));
-  bitmap_layer_set_compositing_mode(s_weather_icon_layer, GCompOpSet);
   layer_add_child(w_layer, bitmap_layer_get_layer(s_weather_icon_layer));
+
+  // TWEAKED: Lifted from Y:58 to Y:44 to achieve a 0px gap with the icon and clear the date layer
+  //s_weather_desc_layer = text_layer_create(GRect(5, 44, 84, 18));
+  //text_layer_set_font(s_weather_desc_layer, fonts_get_system_font(FONT_KEY_GOTHIC_14_BOLD));
+  //text_layer_set_text_alignment(s_weather_desc_layer, GTextAlignmentCenter);
+  //text_layer_set_background_color(s_weather_desc_layer, GColorClear);
+  //layer_add_child(w_layer, text_layer_get_layer(s_weather_desc_layer));
   
   s_weather_arc_layer = layer_create(GRect(105, 0, 90, 85));
   layer_set_update_proc(s_weather_arc_layer, weather_arc_update_proc);
@@ -275,15 +322,24 @@ static void main_window_load(Window *window) {
   text_layer_set_text_alignment(s_dist_layer, GTextAlignmentCenter);
   layer_add_child(w_layer, text_layer_get_layer(s_dist_layer));
 
-  s_heart_layer = bitmap_layer_create(GRect(120, 146, 64, 64));
+  s_heart_layer = bitmap_layer_create(GRect(120, 146, 32, 32));
   s_heart_bitmap = gbitmap_create_with_resource(RESOURCE_ID_ICON_HEART);
   bitmap_layer_set_bitmap(s_heart_layer, s_heart_bitmap);
   layer_add_child(w_layer, bitmap_layer_get_layer(s_heart_layer));
 
-  s_hr_layer = text_layer_create(GRect(120, 155, 64, 35));
+  // TWEAKED: Locked font to 28pt and established static frame for consistent placement
+  s_hr_layer = text_layer_create(GRect(145, 140, 55, 35));
   text_layer_set_font(s_hr_layer, fonts_get_system_font(FONT_KEY_GOTHIC_28_BOLD));
   text_layer_set_text_alignment(s_hr_layer, GTextAlignmentCenter);
   layer_add_child(w_layer, text_layer_get_layer(s_hr_layer));
+
+  s_hr_graph_layer = layer_create(GRect(120, 190, 64, 20));
+  layer_set_update_proc(s_hr_graph_layer, hr_graph_update_proc);
+  layer_add_child(w_layer, s_hr_graph_layer);
+
+  for(int i = 0; i < HR_HISTORY_SIZE; i++) {
+    s_hr_history[i] = 60; 
+  }
 
   s_battery_layer = layer_create(GRect(0, 222, 200, 6));
   layer_set_update_proc(s_battery_layer, battery_update_proc);
@@ -295,6 +351,12 @@ static void main_window_load(Window *window) {
   time_t now = time(NULL);
   update_time(localtime(&now), MINUTE_UNIT);
   update_health();
+}
+
+static void main_window_unload(Window *window) {
+  if (s_weather_bitmap) gbitmap_destroy(s_weather_bitmap);
+  if (s_heart_bitmap) gbitmap_destroy(s_heart_bitmap);
+  text_layer_destroy(s_weather_desc_layer);
 }
 
 static void inbox_received_callback(DictionaryIterator *iter, void *ctx) {
@@ -319,13 +381,12 @@ static void inbox_received_callback(DictionaryIterator *iter, void *ctx) {
 
 static void init() {
   s_main_window = window_create();
-  window_set_window_handlers(s_main_window, (WindowHandlers) { .load = main_window_load, .unload = (WindowHandler)window_destroy });
+  window_set_window_handlers(s_main_window, (WindowHandlers) { .load = main_window_load, .unload = main_window_unload });
   window_stack_push(s_main_window, true);
   tick_timer_service_subscribe(MINUTE_UNIT, update_time);
   battery_state_service_subscribe(battery_callback);
   battery_callback(battery_state_service_peek());
   accel_tap_service_subscribe(tap_handler);
-  connection_service_subscribe((ConnectionHandlers) { .pebble_app_connection_handler = bluetooth_callback });
   app_message_register_inbox_received(inbox_received_callback);
   app_message_open(256, 256);
 }

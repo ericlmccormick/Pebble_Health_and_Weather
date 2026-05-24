@@ -31,7 +31,7 @@
         "resources": {
             "media": [
                 {
-                    "file": "images/heart-64.png",
+                    "file": "images/heart-32.png",
                     "name": "ICON_HEART",
                     "targetPlatforms": null,
                     "type": "bitmap"
@@ -179,5 +179,5 @@
             "watchface": true
         }
     },
-    "version": "1.5.2"
+    "version": "1.6.0"
 }
