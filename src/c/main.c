@@ -23,7 +23,8 @@
 
 // --- UI Elements ---
 static Window *s_main_window;
-static TextLayer *s_time_layer, *s_date_layer, *s_hr_layer, *s_dist_layer, *s_weather_desc_layer;
+// COMMENTED OUT: s_weather_desc_layer
+static TextLayer *s_time_layer, *s_date_layer, *s_hr_layer, *s_dist_layer /*, *s_weather_desc_layer */;
 static Layer *s_weather_arc_layer, *s_goals_canvas;
 static BitmapLayer *s_weather_icon_layer, *s_heart_layer;
 static GBitmap *s_weather_bitmap = NULL, *s_heart_bitmap = NULL;
@@ -35,7 +36,8 @@ static int s_step_goal = 10000, s_active_goal = 30, s_update_freq = 30, s_batter
 static bool s_is_24h = false, s_connected = true, s_use_metric = false, s_is_night = false;
 static char s_time_buf[10], s_cur_buf[8], s_hi_buf[8], s_lo_buf[8], s_hr_buf[8], s_dist_buf[16];
 static char s_icon_code[4] = "01d";
-static char s_weather_desc_buf[20] = "";
+// COMMENTED OUT: Description text buffer
+// static char s_weather_desc_buf[20] = ""; 
 static time_t s_weather_timestamp = 0;
 
 // --- Heart Graph Variables ---
@@ -159,7 +161,7 @@ static void goals_update_proc(Layer *layer, GContext *ctx) {
   graphics_draw_arc(ctx, grect_inset(draw_bounds, GEdgeInsets(7)), GOvalScaleModeFitCircle, 0, (s_step_goal > 0) ? (steps * TRIG_MAX_ANGLE) / s_step_goal : 0);
 }
 
-// --- Heart Rate Sparkline Drawing ---
+// --- Heart Rate Sparkline Drawing (Exaggerated & Colorized) ---
 static void hr_graph_update_proc(Layer *layer, GContext *ctx) {
   #if defined(PBL_HEALTH)
   GRect bounds = layer_get_bounds(layer);
@@ -209,33 +211,38 @@ static void set_weather_icon(char *icon_code) {
   strncpy(s_icon_code, icon_code, sizeof(s_icon_code)); 
   
   uint32_t res_id = RESOURCE_ID_ICON_CLOUDY;
-  char *desc = "Loading";
+  // COMMENTED OUT: description variable
+  // char *desc = "Loading";
 
   if (!s_connected) {
     res_id = RESOURCE_ID_ICON_HAZE;
-    desc = "Offline";
+    // desc = "Offline";
   } else {
-    if (strcmp(icon_code, "01d") == 0) { res_id = RESOURCE_ID_ICON_CLEAR_DAY; desc = "Clear"; }
-    else if (strcmp(icon_code, "01n") == 0) { res_id = RESOURCE_ID_ICON_CLEAR_NIGHT; desc = "Clear"; }
-    else if (strcmp(icon_code, "02d") == 0) { res_id = RESOURCE_ID_ICON_CLOUDY_SUN; desc = "P. Cloudy"; }
-    else if (strcmp(icon_code, "02n") == 0) { res_id = RESOURCE_ID_ICON_CLOUDY_NIGHT; desc = "P. Cloudy"; }
-    else if (strcmp(icon_code, "03d") == 0 || strcmp(icon_code, "03n") == 0) { res_id = RESOURCE_ID_ICON_CLOUDY; desc = "Cloudy"; }
-    else if (strcmp(icon_code, "04d") == 0 || strcmp(icon_code, "04n") == 0) { res_id = RESOURCE_ID_ICON_CLOUDY; desc = "Overcast"; }
-    else if (strcmp(icon_code, "09d") == 0 || strcmp(icon_code, "09n") == 0) { res_id = RESOURCE_ID_ICON_RAIN; desc = "Showers"; }
-    else if (strcmp(icon_code, "10d") == 0 || strcmp(icon_code, "10n") == 0) { res_id = RESOURCE_ID_ICON_RAIN; desc = "Rain"; }
-    else if (strcmp(icon_code, "11d") == 0 || strcmp(icon_code, "11n") == 0) { res_id = RESOURCE_ID_ICON_THUNDER_SHOWER; desc = "Storm"; }
-    else if (strcmp(icon_code, "13d") == 0 || strcmp(icon_code, "13n") == 0) { res_id = RESOURCE_ID_ICON_SNOW; desc = "Snow"; }
-    else if (strcmp(icon_code, "50d") == 0 || strcmp(icon_code, "50n") == 0) { res_id = RESOURCE_ID_ICON_HAZE; desc = "Mist"; }
-    else { desc = "Weather"; } 
+    // Description assignments have been commented out to prevent unused variable compiler errors
+    if (strcmp(icon_code, "01d") == 0) { res_id = RESOURCE_ID_ICON_CLEAR_DAY; /* desc = "Clear"; */ }
+    else if (strcmp(icon_code, "01n") == 0) { res_id = RESOURCE_ID_ICON_CLEAR_NIGHT; /* desc = "Clear"; */ }
+    else if (strcmp(icon_code, "02d") == 0) { res_id = RESOURCE_ID_ICON_CLOUDY_SUN; /* desc = "P. Cloudy"; */ }
+    else if (strcmp(icon_code, "02n") == 0) { res_id = RESOURCE_ID_ICON_CLOUDY_NIGHT; /* desc = "P. Cloudy"; */ }
+    else if (strcmp(icon_code, "03d") == 0 || strcmp(icon_code, "03n") == 0) { res_id = RESOURCE_ID_ICON_CLOUDY; /* desc = "Cloudy"; */ }
+    else if (strcmp(icon_code, "04d") == 0 || strcmp(icon_code, "04n") == 0) { res_id = RESOURCE_ID_ICON_CLOUDY; /* desc = "Overcast"; */ }
+    else if (strcmp(icon_code, "09d") == 0 || strcmp(icon_code, "09n") == 0) { res_id = RESOURCE_ID_ICON_RAIN; /* desc = "Showers"; */ }
+    else if (strcmp(icon_code, "10d") == 0 || strcmp(icon_code, "10n") == 0) { res_id = RESOURCE_ID_ICON_RAIN; /* desc = "Rain"; */ }
+    else if (strcmp(icon_code, "11d") == 0 || strcmp(icon_code, "11n") == 0) { res_id = RESOURCE_ID_ICON_THUNDER_SHOWER; /* desc = "Storm"; */ }
+    else if (strcmp(icon_code, "13d") == 0 || strcmp(icon_code, "13n") == 0) { res_id = RESOURCE_ID_ICON_SNOW; /* desc = "Snow"; */ }
+    else if (strcmp(icon_code, "50d") == 0 || strcmp(icon_code, "50n") == 0) { res_id = RESOURCE_ID_ICON_HAZE; /* desc = "Mist"; */ }
+    // else { desc = "Weather"; } 
   }
 
   s_weather_bitmap = gbitmap_create_with_resource(res_id);
   bitmap_layer_set_bitmap(s_weather_icon_layer, s_weather_bitmap);
   
+  // COMMENTED OUT: description assignment to layer
+  /*
   strncpy(s_weather_desc_buf, desc, sizeof(s_weather_desc_buf));
   if (s_weather_desc_layer) {
     text_layer_set_text(s_weather_desc_layer, s_weather_desc_buf);
   }
+  */
 }
 
 static void update_time(struct tm *tick_time, TimeUnits units_changed) {
@@ -261,7 +268,6 @@ static void update_health() {
   #if defined(PBL_HEALTH)
   int bpm = (int)health_service_peek_current_value(HealthMetricHeartRateBPM);
   
-  // REMOVED dynamic scaling. Position locked exactly up and right.
   snprintf(s_hr_buf, sizeof(s_hr_buf), "%d", bpm);
   text_layer_set_text(s_hr_layer, s_hr_buf);
   
@@ -292,12 +298,14 @@ static void main_window_load(Window *window) {
   s_weather_icon_layer = bitmap_layer_create(GRect(15, 0, 64, 64));
   layer_add_child(w_layer, bitmap_layer_get_layer(s_weather_icon_layer));
 
-  // TWEAKED: Lifted from Y:58 to Y:44 to achieve a 0px gap with the icon and clear the date layer
-  //s_weather_desc_layer = text_layer_create(GRect(5, 44, 84, 18));
-  //text_layer_set_font(s_weather_desc_layer, fonts_get_system_font(FONT_KEY_GOTHIC_14_BOLD));
-  //text_layer_set_text_alignment(s_weather_desc_layer, GTextAlignmentCenter);
-  //text_layer_set_background_color(s_weather_desc_layer, GColorClear);
-  //layer_add_child(w_layer, text_layer_get_layer(s_weather_desc_layer));
+  // COMMENTED OUT: description layer creation
+  /*
+  s_weather_desc_layer = text_layer_create(GRect(5, 44, 84, 18));
+  text_layer_set_font(s_weather_desc_layer, fonts_get_system_font(FONT_KEY_GOTHIC_14_BOLD));
+  text_layer_set_text_alignment(s_weather_desc_layer, GTextAlignmentCenter);
+  text_layer_set_background_color(s_weather_desc_layer, GColorClear);
+  layer_add_child(w_layer, text_layer_get_layer(s_weather_desc_layer));
+  */
   
   s_weather_arc_layer = layer_create(GRect(105, 0, 90, 85));
   layer_set_update_proc(s_weather_arc_layer, weather_arc_update_proc);
@@ -327,7 +335,6 @@ static void main_window_load(Window *window) {
   bitmap_layer_set_bitmap(s_heart_layer, s_heart_bitmap);
   layer_add_child(w_layer, bitmap_layer_get_layer(s_heart_layer));
 
-  // TWEAKED: Locked font to 28pt and established static frame for consistent placement
   s_hr_layer = text_layer_create(GRect(145, 140, 55, 35));
   text_layer_set_font(s_hr_layer, fonts_get_system_font(FONT_KEY_GOTHIC_28_BOLD));
   text_layer_set_text_alignment(s_hr_layer, GTextAlignmentCenter);
@@ -337,9 +344,44 @@ static void main_window_load(Window *window) {
   layer_set_update_proc(s_hr_graph_layer, hr_graph_update_proc);
   layer_add_child(w_layer, s_hr_graph_layer);
 
+  // Initialize History safely
+  #if defined(PBL_HEALTH)
   for(int i = 0; i < HR_HISTORY_SIZE; i++) {
-    s_hr_history[i] = 60; 
+    s_hr_history[i] = 60; // Fallback baseline
   }
+  
+  time_t end_time = time(NULL);
+  time_t start_time = end_time - (HR_HISTORY_SIZE * SECONDS_PER_MINUTE);
+  HealthMinuteData minute_data[HR_HISTORY_SIZE];
+  
+  uint32_t num_records = health_service_get_minute_history(minute_data, HR_HISTORY_SIZE, &start_time, &end_time);
+  
+  if (num_records > 0) {
+    int offset = HR_HISTORY_SIZE - num_records;
+    int last_valid_hr = 60;
+    
+    // Process returned records
+    for (uint32_t i = 0; i < num_records; i++) {
+      int hr = minute_data[i].heart_rate_bpm;
+      if (hr > 0) { last_valid_hr = hr; }
+      if ((offset + i) < HR_HISTORY_SIZE) {
+        s_hr_history[offset + i] = last_valid_hr;
+      }
+    }
+    
+    // Pad any missing data at the front of the array with the oldest known heart rate
+    int oldest_hr = minute_data[0].heart_rate_bpm > 0 ? minute_data[0].heart_rate_bpm : 60;
+    for (int i = 0; i < offset; i++) {
+      s_hr_history[i] = oldest_hr;
+    }
+  }
+  
+  // Guarantee the final graph point perfectly matches current live reading
+  int current_hr = (int)health_service_peek_current_value(HealthMetricHeartRateBPM);
+  if (current_hr > 0) {
+    s_hr_history[HR_HISTORY_SIZE - 1] = current_hr;
+  }
+  #endif
 
   s_battery_layer = layer_create(GRect(0, 222, 200, 6));
   layer_set_update_proc(s_battery_layer, battery_update_proc);
@@ -356,7 +398,8 @@ static void main_window_load(Window *window) {
 static void main_window_unload(Window *window) {
   if (s_weather_bitmap) gbitmap_destroy(s_weather_bitmap);
   if (s_heart_bitmap) gbitmap_destroy(s_heart_bitmap);
-  text_layer_destroy(s_weather_desc_layer);
+  // COMMENTED OUT: description layer destroy
+  // text_layer_destroy(s_weather_desc_layer);
 }
 
 static void inbox_received_callback(DictionaryIterator *iter, void *ctx) {
